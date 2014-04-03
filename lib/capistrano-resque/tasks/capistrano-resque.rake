@@ -69,7 +69,13 @@ namespace :resque do
         within current_path do
           pids = capture(:ls, "-1 ~/pids/resque_work*.pid")
           pids.each_line do |pid_file|
-            execute :kill, "-s #{fetch(:resque_kill_signal)} $(cat #{pid_file.chomp}) && rm #{pid_file.chomp}"
+            pid = "cat #{pid_file.chomp}"
+            if test "ps ax | grep -v grep | grep $(#{pid}) > /dev/null"
+              execute :kill, "-s", "#{fetch(:resque_kill_signal)} $(#{pid}) && rm #{pid_file.chomp}"
+            else
+              info "Worker from pid file do not exist"
+              execute "rm #{pid_file.chomp}"
+            end
           end
         end
       end
